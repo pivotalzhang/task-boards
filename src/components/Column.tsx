@@ -1,56 +1,57 @@
-import React from 'react';
-import { Column as ColumnType } from '../types';
-import TaskCard from './TaskCard';
 import { Plus } from 'lucide-react';
+import { Task } from '../types';
+import { TaskCard } from './TaskCard';
 
 interface ColumnProps {
-  column: ColumnType;
-  onDragStart: (e: React.DragEvent<HTMLDivElement>, taskId: string, columnId: string) => void;
-  onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
-  onDrop: (e: React.DragEvent<HTMLDivElement>, columnId: string) => void;
-  onAddTask: (columnId: string) => void;
+  title: string;
+  tasks: Task[];
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  onAddTask: () => void;
+  onDragStart: (taskId: string, columnId: string) => void;
+  columnId: string;
 }
 
-const Column: React.FC<ColumnProps> = ({
-  column,
-  onDragStart,
+export function Column({
+  title,
+  tasks,
   onDragOver,
   onDrop,
   onAddTask,
-}) => {
+  onDragStart,
+  columnId,
+}: ColumnProps) {
   return (
-    <div
-      className="bg-gray-100 p-4 rounded-lg shadow-sm min-w-[300px] max-w-[300px] h-full flex flex-col"
+    <div 
+      className="bg-gray-100 p-4 rounded-lg w-72"
       onDragOver={onDragOver}
-      onDrop={(e) => onDrop(e, column.id)}
+      onDrop={onDrop}
     >
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="font-bold text-gray-700">{column.title}</h2>
-        <span className="bg-gray-200 text-gray-700 text-xs font-medium px-2 py-1 rounded-full">
-          {column.tasks.length}
-        </span>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-semibold text-gray-700">{title}</h2>
+        <button
+          onClick={onAddTask}
+          className="p-1 hover:bg-gray-200 rounded-md"
+        >
+          <Plus className="w-5 h-5 text-gray-600" />
+        </button>
       </div>
       
-      <div className="flex-grow overflow-y-auto">
-        {column.tasks.map((task) => (
+      <div className="flex flex-col gap-2">
+        {tasks.map((task) => (
           <TaskCard
             key={task.id}
-            task={task}
-            onDragStart={onDragStart}
-            columnId={column.id}
+            title={task.title}
+            description={task.description}
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData('taskId', task.id);
+              e.dataTransfer.setData('sourceColumnId', columnId);
+              onDragStart(task.id, columnId);
+            }}
           />
         ))}
       </div>
-      
-      <button
-        className="mt-3 flex items-center justify-center w-full py-2 bg-white border border-gray-300 rounded-md text-gray-600 hover:bg-gray-50 transition-colors"
-        onClick={() => onAddTask(column.id)}
-      >
-        <Plus size={16} className="mr-1" />
-        Add Task
-      </button>
     </div>
   );
-};
-
-export default Column;
+}

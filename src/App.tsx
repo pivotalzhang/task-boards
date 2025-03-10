@@ -1,29 +1,108 @@
-import React from 'react';
-import Board from './components/Board';
-import { initialData } from './data/initialData';
-import { Trello } from 'lucide-react';
+import { useState } from 'react';
+import { Column } from './components/Column';
+import type { Column as ColumnType, Task } from './types';
 
 function App() {
+  const [columns, setColumns] = useState<ColumnType[]>([
+    {
+      id: 'todo',
+      title: 'To Do',
+      tasks: [
+        { id: '1', title: 'Research competitors', description: 'Analyze main competitors' },
+        { id: '2', title: 'Design mockups', description: 'Create initial designs' },
+      ],
+    },
+    {
+      id: 'in-progress',
+      title: 'In Progress',
+      tasks: [
+        { id: '3', title: 'Implement auth', description: 'Set up authentication flow' },
+      ],
+    },
+    {
+      id: 'done',
+      title: 'Done',
+      tasks: [
+        { id: '4', title: 'Project setup', description: 'Initial project configuration' },
+      ],
+    },
+  ]);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (columnId: string) => (e: React.DragEvent) => {
+    e.preventDefault();
+    
+    const taskId = e.dataTransfer.getData('taskId');
+    const sourceColumnId = e.dataTransfer.getData('sourceColumnId');
+    
+    if (sourceColumnId === columnId) return;
+
+    setColumns(prev => {
+      const sourceColumn = prev.find(col => col.id === sourceColumnId);
+      const targetColumn = prev.find(col => col.id === columnId);
+      
+      if (!sourceColumn || !targetColumn) return prev;
+      
+      const task = sourceColumn.tasks.find(t => t.id === taskId);
+      if (!task) return prev;
+
+      return prev.map(col => {
+        if (col.id === sourceColumnId) {
+          return {
+            ...col,
+            tasks: col.tasks.filter(t => t.id !== taskId),
+          };
+        }
+        if (col.id === columnId) {
+          return {
+            ...col,
+            tasks: [...col.tasks, task],
+          };
+        }
+        return col;
+      });
+    });
+  };
+
+  const handleAddTask = (columnId: string) => {
+    const newTask: Task = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: 'New Task',
+      description: 'Click to edit',
+    };
+
+    setColumns(prev =>
+      prev.map(col =>
+        col.id === columnId
+          ? { ...col, tasks: [...col.tasks, newTask] }
+          : col
+      )
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-blue-600 text-white p-4 shadow-md">
-        <div className="container mx-auto flex items-center">
-          <Trello size={28} className="mr-2" />
-          <h1 className="text-xl font-bold">React Task Board</h1>
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-2xl font-bold text-gray-800 mb-8">Task Board</h1>
+        
+        <div className="flex gap-6 overflow-x-auto pb-4">
+          {columns.map(column => (
+            <Column
+              key={column.id}
+              columnId={column.id}
+              title={column.title}
+              tasks={column.tasks}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop(column.id)}
+              onAddTask={() => handleAddTask(column.id)}
+              onDragStart={() => {}}
+            />
+          ))}
         </div>
-      </header>
-      
-      <main className="flex-grow container mx-auto py-6 px-4">
-        <div className="bg-white rounded-lg shadow-sm h-[calc(100vh-8rem)]">
-          <Board initialData={initialData} />
-        </div>
-      </main>
-      
-      <footer className="bg-gray-100 py-4 border-t">
-        <div className="container mx-auto text-center text-gray-600 text-sm">
-          React Drag &amp; Drop Task Board
-        </div>
-      </footer>
+      </div>
     </div>
   );
 }
